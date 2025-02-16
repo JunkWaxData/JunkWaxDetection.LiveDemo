@@ -3,10 +3,10 @@
 
 <div class="main-container">
 	<div id="videoContainer">
-		<video id="webcam" autoplay playsinline @ref="videoRef"></video>
-		<canvas id="overlay" width="1280" height="720" @ref="canvasRef"></canvas>
+		<video id="webcam" autoplay playsinline @ref="VideoRef"></video>
+		<canvas id="overlay" width="1280" height="720" @ref="CanvasRef"></canvas>
 	</div>
-	<button id="toggleInference" @onclick="ToggleInference">
-		@((isInferenceRunning ? "Stop Inference" : "Start Inference"))
+	<button id="toggleInference" @onclick="ToggleInferenceAsync">
+		@((IsInferenceRunning ? "Stop Inference" : "Start Inference"))
 	</button>
 </div>

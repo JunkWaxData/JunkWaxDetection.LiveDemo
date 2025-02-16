@@ -16,125 +16,130 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
         /// <summary>
         ///     JS Interop for communication with the browser for webcam and canvas operations
         /// </summary>
-        [Inject] private IJSRuntime _jsRuntime { get; set; }
+        [Inject]
+        private IJSRuntime _jsRuntime { get; set; }
 
         /// <summary>
         ///     App settings for Configuration Values
         /// </summary>
-        [Inject] private IOptions<AppSettings> _appSettings { get; set; }
+        [Inject]
+        private IOptions<AppSettings> _appSettings { get; set; }
 
-        [Inject] private IMLController _mlController { get; set; }
+        /// <summary>
+        ///     ML Controller for Inference of images captured from the Webcam Feed
+        /// </summary>
+        [Inject]
+        private IMLController _mlController { get; set; }
 
-        [Inject] private IOCRController _ocrController { get; set; }
+        /// <summary>
+        ///     OCR Controller for extracting text from the cropped image from the object bounding box
+        /// </summary>
+        [Inject]
+        private IOCRController _ocrController { get; set; }
 
-        [Inject] private ICardListController _cardListController { get; set; }
+        /// <summary>
+        ///     Card List Controller for searching through card sets from Junk Wax Data GitHub Repository
+        /// </summary>
+        [Inject]
+        private ICardListController _cardListController { get; set; }
 
         /// <summary>
         ///    Reference to the video element
         /// </summary>
-        protected ElementReference videoRef;
+        protected ElementReference VideoRef;
 
         /// <summary>
         ///   Reference to the canvas element that overlays the video for bounding boxes and labels
         /// </summary>
-        protected ElementReference canvasRef;
+        protected ElementReference CanvasRef;
 
         /// <summary>
         ///      State to track if Inference is currently Running 
         /// </summary>
-        protected bool isInferenceRunning;
+        protected bool IsInferenceRunning;
 
         /// <summary>
         ///     Timer used to invoke the inference cycle
         /// </summary>
-        protected Timer inferenceTimer;
+        private Timer _inferenceTimer;
 
         protected override async Task OnInitializedAsync()
         {
-            try
-            {
-                _mlController.Init();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error during inference: {ex.Message}");
-            }
+            // Initialize the ML Controller
+            _mlController.Init();
         }
 
+        /// <summary>
+        ///     After the page has rendered, interact with the browser to start the webcam and draw the webcam overlay
+        /// </summary>
+        /// <param name="firstRender"></param>
+        /// <returns></returns>
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            try
-            {
-                if (firstRender)
-                {
-                    // Start the webcam (JS interop)
-                    await _jsRuntime.InvokeVoidAsync("interop.startWebcam", videoRef);
 
-                    //
-                    await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", canvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, null, null);
-                }
-            }
-            catch (Exception ex)
+            //Setup the initial page state by starting the webcam and drawing the overlay
+            if (firstRender)
             {
-                Debug.WriteLine($"Error during inference: {ex.Message}");
+                // Start the webcam (JS interop)
+                await _jsRuntime.InvokeVoidAsync("interop.startWebcam", VideoRef);
+
+                // Draw the overlay cropping the webcam to 3:4 aspect ratio
+                await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", CanvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, null, null);
             }
         }
 
-        private void ToggleInference()
+        /// <summary>
+        ///     Utilized by the button to toggle the Inference Cycle
+        /// </summary>
+        private async Task ToggleInferenceAsync()
         {
-            try
+            if (IsInferenceRunning)
             {
-                if (isInferenceRunning)
-                {
-                    StopInference();
-                }
-                else
-                {
-                    StartInference();
-                }
+                await StopInferenceAsync();
             }
-            catch (Exception ex)
+            else
             {
-                Debug.WriteLine($"Error during inference: {ex.Message}");
+                await StartInferenceAsync();
             }
         }
 
-        private void StartInference()
+        /// <summary>
+        ///     Begins a timer to run the Inference Cycle
+        /// </summary>
+        private async Task StartInferenceAsync()
         {
-            try
-            {
-                isInferenceRunning = true;
-                // Start a timer that calls RunInferenceCycle at a configured interval.
-                inferenceTimer = new Timer(async _ => await RunInferenceCycle(), null, 0, _appSettings.Value.InferenceDelay);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error during inference: {ex.Message}");
-            }
+            IsInferenceRunning = true;
+            // Start a timer that calls RunInferenceCycle at a configured interval.
+            _inferenceTimer = new Timer(async _ => await RunInferenceCycle(), null, 0, _appSettings.Value.InferenceDelay);
         }
 
-        private void StopInference()
+        /// <summary>
+        ///     Kills the Inference Cycle
+        /// </summary>
+        /// <returns></returns>
+        private async Task StopInferenceAsync()
         {
-            try
-            {
-                isInferenceRunning = false;
-                inferenceTimer?.Dispose();
-                // Retain the last results.
-                InvokeAsync(StateHasChanged);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Error during inference: {ex.Message}");
-            }
+            IsInferenceRunning = false;
+            _inferenceTimer?.Dispose();
         }
 
+        /// <summary>
+        ///     Runs the Inference Cycle by:
+        ///
+        ///     1. Capturing the current frame from the video as a base64 encoded JPEG (cropped by 3:4 aspect ratio)
+        ///     2. Running inference on the image captured (model is expecting 3:4 aspect ratio images)
+        ///     3. Filtering predictions above the threshold
+        ///     4. Drawing the bounding boxes on the overlay canvas
+        ///     5. Updating the side text with the detected card information
+        /// </summary>
+        /// <returns></returns>
         private async Task RunInferenceCycle()
         {
             try
             {
                 // Capture the current frame from the video as a base64 string.
                 // (JS interop function "captureFrame" returns the PNG data as a base64 string without header.)
-                var base64Image = await _jsRuntime.InvokeAsync<string>("interop.captureCroppedFrame", videoRef, _appSettings.Value.CropX, _appSettings.Value.CropY,
+                var base64Image = await _jsRuntime.InvokeAsync<string>("interop.captureCroppedFrame", VideoRef, _appSettings.Value.CropX, _appSettings.Value.CropY,
                     _appSettings.Value.CropWidth, _appSettings.Value.CropHeight);
 
                 using var original = SKBitmap.Decode(Convert.FromBase64String(base64Image));
@@ -148,7 +153,7 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
                 //Nothing found? Bail.
                 if (validPredictions.Count == 0)
                 {
-                    await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", canvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, null, null);
+                    await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", CanvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, null, null);
                     await InvokeAsync(StateHasChanged);
                     return;
                 }
@@ -170,7 +175,7 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
                 var card = GetCardInfo(original, bestPrediction);
 
                 // Call JS to draw the bounding boxes onto the overlay canvas and update the side text
-                await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", canvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, boxes, _appSettings.Value.BBoxColor);
+                await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", CanvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, boxes, _appSettings.Value.BBoxColor);
                 await DrawSideText(GetSideText(bestPrediction, card), TextArea.Left);
 
                 // Request a UI update.
@@ -242,7 +247,7 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
                 return;
 
             await _jsRuntime.InvokeVoidAsync("interop.drawSideText",
-                canvasRef,          // The overlay canvas element
+                CanvasRef,          // The overlay canvas element
                 Enum.GetName(textArea)?.ToLower(),             // Indicate left side
                 textToDraw,// The text to display
                 _appSettings.Value.CropX,              // cropX from your configuration
