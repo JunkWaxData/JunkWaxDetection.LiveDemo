@@ -1,5 +1,8 @@
 ﻿namespace JunkWaxDetection.LiveDemo
 {
+    /// <summary>
+    ///    Represents the AppSettings JSON for the Application which contains all the configuration values
+    /// </summary>
     public class AppSettings
     {
         /// <summary>

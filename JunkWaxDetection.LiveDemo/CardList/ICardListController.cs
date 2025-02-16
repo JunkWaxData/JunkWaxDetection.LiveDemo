@@ -5,8 +5,7 @@ public interface ICardListController
     /// <summary>
     ///     Loads the latest card list for the specified set from the JunkWaxData Github Repository
     /// </summary>
-    /// <param name="year"></param>
-    /// <param name="setName"></param>
+    /// <param name="setLabel"></param>
     bool LoadSet(string setLabel);
 
     /// <summary>

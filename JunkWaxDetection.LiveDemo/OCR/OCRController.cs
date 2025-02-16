@@ -5,6 +5,12 @@ using SkiaSharp;
 
 namespace JunkWaxDetection.LiveDemo.OCR
 {
+    /// <summary>
+    ///     This class is responsible for extracting text from an image using the Paddle OCR library
+    ///
+    ///     The image passed into the ExtractText method should be the cropped image of the card corresponding
+    ///     to the bounding box detected by the ML model.
+    /// </summary>
     public class OCRController : IOCRController, IDisposable
     {
         private PaddleOcrAll _paddleOcr;

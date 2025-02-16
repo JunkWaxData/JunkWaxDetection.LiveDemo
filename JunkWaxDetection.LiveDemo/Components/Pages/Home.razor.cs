@@ -1,7 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Text;
 using JunkWaxDetection.LiveDemo.CardList;
-using JunkWaxDetection.LiveDemo.Enums;
 using JunkWaxDetection.LiveDemo.ML;
 using JunkWaxDetection.LiveDemo.OCR;
 using Microsoft.AspNetCore.Components;
@@ -83,7 +82,18 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
             "a cell phone, as the JunkWaxDetection model\n" +
             "is optimized for Mobile applications.";
 
+        /// <summary>
+        ///    The current card search result for the detected card
+        ///
+        ///     We cache this here so we can display the detected card, and overwrite
+        ///     the current result if we find a better match.
+        /// </summary>
         private CardSearchResult _currentCardSearchResult = new();
+
+        /// <summary>
+        ///     Override the OnInitializedAsync method to initialize the ML Controller
+        /// </summary>
+        /// <returns></returns>
         protected override async Task OnInitializedAsync()
         {
             // Initialize the ML Controller
