@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using SkiaSharp;
+using MatchType = JunkWaxDetection.LiveDemo.CardList.Enums.MatchType;
 
 namespace JunkWaxDetection.LiveDemo.Components.Pages
 {
@@ -72,8 +73,17 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
         ///     Text to be rendered to the right of the WebCam Preview
         /// </summary>
         private readonly string _rightText =
-            "Webcam preview cropped at 3:4 ratio to\n simulate portrait mode images captured by a\ncell phone, which the underlying Object\nDetection Model was trained on.";
+            "Live Demo powered by ASP.NET Blazor +\n" +
+            "the JunkWaxDetection Object Detection\n" + 
+            "model through ML.NET!\n\n" +
+            "The JunkWaxDetection Objection Detection\n" + 
+            "model (ONNX + TF) is available on Github!\n\n" + 
+            "Webcam preview cropped at 3:4 ratio to\n" +
+            "simulate portrait mode images captured by\n" + 
+            "a cell phone, as the JunkWaxDetection model\n" +
+            "is optimized for Mobile applications.";
 
+        private CardSearchResult _currentCardSearchResult = new();
         protected override async Task OnInitializedAsync()
         {
             // Initialize the ML Controller
@@ -164,8 +174,8 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
                 //Nothing found? Bail.
                 if (validPredictions.Count == 0)
                 {
-                    await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", CanvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, null, null);
-                    await InvokeAsync(StateHasChanged);
+                    _currentCardSearchResult = new(); // Clear the card search result if there was one because we didn't find anything
+                    await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", CanvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, null, null, string.Empty, _rightText);
                     return;
                 }
 
@@ -183,10 +193,11 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
                 //Get Best Prediction and paint card info on Webcam Preview
                 var bestPrediction = validPredictions.OrderByDescending(p => p.Confidence).First();
 
-                var card = GetCardInfo(original, bestPrediction);
+                if(_currentCardSearchResult.Match is MatchType.None or MatchType.StartsWith)
+                    GetCardInfo(original, bestPrediction);
 
                 // Call JS to draw the bounding boxes onto the overlay canvas and update the side text
-                SetLeftText(bestPrediction, card);
+                SetLeftText(bestPrediction, _currentCardSearchResult.Card);
                 await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", CanvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, boxes, _appSettings.Value.BBoxColor, _leftText, _rightText);
 
                 // Request a UI update.
@@ -205,7 +216,7 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
         /// <param name="image"></param>
         /// <param name="prediction"></param>
         /// <returns></returns>
-        private Card GetCardInfo(SKBitmap image, CardPrediction prediction)
+        private void GetCardInfo(SKBitmap image, CardPrediction prediction)
         {
             //Crop the SKImage of the best prediction from the original image and run OCR (we'll use a Canvas to crop the image)
             var croppedImage = new SKBitmap((int)prediction.BoundingBox.Width, (int)prediction.BoundingBox.Height);
@@ -216,15 +227,33 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
 
             var ocrText = _ocrController.ExtractText(croppedImage);
 
+            var results = new List<CardSearchResult>();
+
             foreach (var t in ocrText)
             {
-                if (_cardListController.HasPlayer(prediction.Label, t, out var playerResult))
+                if (_cardListController.CardSearch(prediction.Label, t, out var searchResult))
                 {
-                    return playerResult;
+                    results.Add(searchResult);
                 }
             }
 
-            return new Card();
+            //Always return any exact matches first
+            if (results.Any(x => x.Match == MatchType.Exact))
+            {
+                _currentCardSearchResult = results.First(x => x.Match == MatchType.Exact);
+                return;
+            }
+
+
+            //We'll settle for partial matches if no exact matches are found
+            if (results.Any(x => x.Match == MatchType.StartsWith))
+            {
+                _currentCardSearchResult = results.First(x => x.Match == MatchType.StartsWith);
+                return;
+            }
+
+            //Default it to none if we didn't find anything
+            _currentCardSearchResult = new();
         }
 
         /// <summary>
@@ -237,34 +266,15 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
         private void SetLeftText(CardPrediction prediction, Card card)
         {
             var output = new StringBuilder();
-
+            output.AppendLine("Detected Card:");
+            output.AppendLine("-------------------------");
             output.AppendLine($"{prediction.Label.Replace("|", " ")}");
             output.AppendLine($"#{card.Number} - {card.Name}");
 
+            if(card.Attributes != null && card.Attributes.Contains("RC"))
+                output.AppendLine("(Rookie Card)");
+
             _leftText = output.ToString();
-        }
-
-        /// <summary>
-        ///     Draws text on the side of the preview image
-        /// </summary>
-        /// <param name="textToDraw"></param>
-        /// <param name="textArea"></param>
-        /// <returns></returns>
-        private async Task DrawSideText(string textToDraw, TextArea textArea)
-        {
-            var area = Enum.GetName(textArea)?.ToLower();
-
-            if (area == null)
-                return;
-
-            await _jsRuntime.InvokeVoidAsync("interop.drawSideText",
-                CanvasRef,          // The overlay canvas element
-                Enum.GetName(textArea)?.ToLower(),             // Indicate left side
-                textToDraw,// The text to display
-                _appSettings.Value.CropX,              // cropX from your configuration
-                _appSettings.Value.CropWidth,          // cropWidth from your configuration
-                _appSettings.Value.PreviewWidth,       // previewWidth from your configuration
-                _appSettings.Value.PreviewHeight);     // previewHeight from your configuration
         }
     }
 }

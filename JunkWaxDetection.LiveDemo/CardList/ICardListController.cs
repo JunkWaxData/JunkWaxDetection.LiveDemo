@@ -14,9 +14,9 @@ public interface ICardListController
     /// </summary>
     /// <param name="setLabel"></param>
     /// <param name="playerString"></param>
-    /// <param name="card"></param>
+    /// <param name="cardSearchResult"></param>
     /// <returns></returns>
-    bool HasPlayer(string setLabel, string playerString, out Card card);
+    bool CardSearch(string setLabel, string playerString, out CardSearchResult cardSearchResult);
 
     /// <summary>
     ///     Cleans up the possible player name by removing common strings (such as position, acronyms, etc.)

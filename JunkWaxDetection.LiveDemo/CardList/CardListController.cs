@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
+using MatchType = JunkWaxDetection.LiveDemo.CardList.Enums.MatchType;
 
 namespace JunkWaxDetection.LiveDemo.CardList
 {
@@ -56,9 +57,9 @@ namespace JunkWaxDetection.LiveDemo.CardList
         /// <param name="playerString"></param>
         /// <param name="card"></param>
         /// <returns></returns>
-        public bool HasPlayer(string setLabel, string playerString, out Card card)
+        public bool CardSearch(string setLabel, string playerString, out CardSearchResult cardSearchResult)
         {
-            card = new(); //Assign a default card to return if we don't find the player
+            cardSearchResult = new(); //Assign a default card to return if we don't find the player
             var cleanedPlayerString = CleanupString(playerString);
 
             //Player names will have at least one space -- if there isn't one, bail.
@@ -83,7 +84,8 @@ namespace JunkWaxDetection.LiveDemo.CardList
                     if (!c.Name.Equals(cleanedPlayerString, StringComparison.InvariantCultureIgnoreCase)) 
                         continue;
 
-                    card = c;
+                    cardSearchResult.Match = MatchType.Exact;
+                    cardSearchResult.Card = c;
                     return true;
                 }
 
@@ -93,7 +95,8 @@ namespace JunkWaxDetection.LiveDemo.CardList
                     if (!c.Name.StartsWith(cleanedPlayerString, StringComparison.InvariantCultureIgnoreCase))
                         continue;
 
-                    card = c;
+                    cardSearchResult.Match = MatchType.Exact;
+                    cardSearchResult.Card = c;
                     return true;
                 }
             }

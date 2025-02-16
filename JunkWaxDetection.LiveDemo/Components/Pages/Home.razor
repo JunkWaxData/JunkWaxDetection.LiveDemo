@@ -9,6 +9,16 @@
 		<canvas id="overlay" width="1280" height="720" @ref="CanvasRef"></canvas>
 	</div>
 	<button id="toggleInference" @onclick="ToggleInferenceAsync">
-		@((IsInferenceRunning ? "Stop Inference" : "Start Inference"))
+		@((IsInferenceRunning ? "Stop Inference \u26be" : "Start Inference \u26be"))
 	</button>
 </div>
+
+<footer class="footer">
+	<a href="https://github.com/JunkWaxData/JunkWaxDetection" target="_blank" rel="noopener noreferrer">
+		JunkWaxDetection Model
+	</a>
+	<span class="separator">|</span>
+	<a href="https://github.com/enusbaum" target="_blank" rel="noopener noreferrer">
+		Built by Eric Nusbaum
+	</a>
+</footer>

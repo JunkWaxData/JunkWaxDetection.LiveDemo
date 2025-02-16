@@ -1,0 +1,26 @@
+﻿.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.7); /* Semi-transparent dark background */
+    padding: 10px;
+    text-align: center;
+    z-index: 1000; /* Ensure the footer appears above other elements */
+}
+
+    .footer a {
+        color: #fff; /* White text for readability */
+        text-decoration: none;
+        font-size: 1.2em;
+        margin: 0 10px;
+    }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+.separator {
+    color: #fff;
+    font-size: 1.2em;
+}

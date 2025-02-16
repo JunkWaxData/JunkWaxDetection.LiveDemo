@@ -32,21 +32,19 @@
         // Right black bar: from x = cropX+cropWidth to the end.
         ctx.fillRect(cropX + cropWidth, 0, previewWidth - (cropX + cropWidth), previewHeight);
 
-        //If we're not drawing boxes, bail out.
-        if (boxes === null)
-            return;
-
-        // Now draw bounding boxes.
-        ctx.strokeStyle = color;
-        ctx.fillStyle = color;
-        ctx.lineWidth = 3;
-        ctx.font = "16px Arial";
-        boxes.forEach(box => {
-            ctx.beginPath();
-            ctx.rect(box.x, box.y, box.width, box.height);
-            ctx.stroke();
-            ctx.fillText(`${box.label} (${box.confidence.toFixed(4)})`, box.x, box.y - 5);
-        });
+        //Draw bounding boxes if they're specified
+        if (boxes !== null) {
+            ctx.strokeStyle = color;
+            ctx.fillStyle = color;
+            ctx.lineWidth = 3;
+            ctx.font = "16px Arial";
+            boxes.forEach(box => {
+                ctx.beginPath();
+                ctx.rect(box.x, box.y, box.width, box.height);
+                ctx.stroke();
+                ctx.fillText(`${box.label} (${box.confidence.toFixed(4)})`, box.x, box.y - 5);
+            });
+        }
 
         // Draw text in the blacked-out side areas.
         if (leftText) {
