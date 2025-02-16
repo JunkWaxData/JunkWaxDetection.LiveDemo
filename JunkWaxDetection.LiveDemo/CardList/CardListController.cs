@@ -32,7 +32,7 @@ namespace JunkWaxDetection.LiveDemo.CardList
             //Parse the Set Label into Year and Set Name
             var parts = setLabel.Split("|");
             var year = parts[0];
-            var setName = parts[1];
+            var setName = parts[1].Replace(" ", "-"); // Handle the URL formatting where spaces in set file names on GitHub are replaced with '-'
 
             //URL Format for GitHub JSON Files is: {GitHubBaseUrl}/{Year}/{Year}-{SetName}.json
             var url = $"{appSettings.Value.CardListBaseUrl}/{year}/{year}-{setName}.json";
