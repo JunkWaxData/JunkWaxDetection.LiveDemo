@@ -1,6 +1,6 @@
 # JunkWaxDetection.LiveDemo
 
-**JunkWaxDetection.LiveDemo** is my ML-powered, real-time Blazor web application built on **.NET 9** that detects **Junk Wax Baseball Cards**—including **retro baseball cards from the 80s and 90s**—using advanced **machine learning** models. This project leverages **ML.NET**, **ONNX**, and **Paddle OCR** to deliver precise image classification and optical character recognition (OCR) for authenticating and analyzing vintage baseball cards.
+**JunkWaxDetection.LiveDemo** is an ML-powered, real-time Blazor web application built on **.NET 9** that detects **Junk Wax Baseball Cards** — including **retro baseball cards from the 80s and 90s** — using advanced **machine learning** models. This project leverages **ML.NET**, **ONNX**, and **Paddle OCR** to deliver precise image classification and optical character recognition (OCR) for authenticating and analyzing vintage baseball cards. My overall goal for this tech demo was to show that C# developers can have just as much fun with Machine Learning and Computer Vision as any other language!
 
 ## Table of Contents
 
