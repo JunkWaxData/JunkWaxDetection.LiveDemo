@@ -9,7 +9,14 @@ public interface ICardListController
     /// <param name="setName"></param>
     bool LoadSet(string setLabel);
 
-    (bool foundPlayer, Card card) HasPlayer(string setLabel, string playerString);
+    /// <summary>
+    ///     Searches through the specified set for the player name extracted from the baseball card
+    /// </summary>
+    /// <param name="setLabel"></param>
+    /// <param name="playerString"></param>
+    /// <param name="card"></param>
+    /// <returns></returns>
+    bool HasPlayer(string setLabel, string playerString, out Card card);
 
     /// <summary>
     ///     Cleans up the possible player name by removing common strings (such as position, acronyms, etc.)

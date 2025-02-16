@@ -83,10 +83,13 @@ namespace JunkWaxDetection.LiveDemo.ML
             return boxes;
         }
 
+
         /// <summary>
-        /// Runs the ONNX model on the given tensor and returns predictions.
-        /// Each prediction is a Tuple of (label, score, bounding box in 320x320 coordinates).
+        ///     Runs the ONNX model on the given tensor and returns predictions.
         /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidOperationException"></exception>
         public List<CardPrediction> GetPredictions(Tensor<float> input)
         {
             if(!Initialized)

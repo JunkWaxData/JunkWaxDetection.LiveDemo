@@ -51,49 +51,84 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
 
         protected override async Task OnInitializedAsync()
         {
-            _mlController.Init();
+            try
+            {
+                _mlController.Init();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error during inference: {ex.Message}");
+            }
         }
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
-            if (firstRender)
+            try
             {
-                // Start the webcam (JS interop)
-                await _jsRuntime.InvokeVoidAsync("interop.startWebcam", videoRef);
+                if (firstRender)
+                {
+                    // Start the webcam (JS interop)
+                    await _jsRuntime.InvokeVoidAsync("interop.startWebcam", videoRef);
 
-                //
-                await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", canvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, null, null);
+                    //
+                    await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", canvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, null, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error during inference: {ex.Message}");
             }
         }
 
-        void ToggleInference()
+        private void ToggleInference()
         {
-            if (isInferenceRunning)
+            try
             {
-                StopInference();
+                if (isInferenceRunning)
+                {
+                    StopInference();
+                }
+                else
+                {
+                    StartInference();
+                }
             }
-            else
+            catch (Exception ex)
             {
-                StartInference();
+                Debug.WriteLine($"Error during inference: {ex.Message}");
             }
         }
 
-        void StartInference()
+        private void StartInference()
         {
-            isInferenceRunning = true;
-            // Start a timer that calls RunInferenceCycle at a configured interval.
-            inferenceTimer = new Timer(async _ => await RunInferenceCycle(), null, 0, _appSettings.Value.InferenceDelay);
+            try
+            {
+                isInferenceRunning = true;
+                // Start a timer that calls RunInferenceCycle at a configured interval.
+                inferenceTimer = new Timer(async _ => await RunInferenceCycle(), null, 0, _appSettings.Value.InferenceDelay);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error during inference: {ex.Message}");
+            }
         }
 
-        void StopInference()
+        private void StopInference()
         {
-            isInferenceRunning = false;
-            inferenceTimer?.Dispose();
-            // Retain the last results.
-            InvokeAsync(StateHasChanged);
+            try
+            {
+                isInferenceRunning = false;
+                inferenceTimer?.Dispose();
+                // Retain the last results.
+                InvokeAsync(StateHasChanged);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error during inference: {ex.Message}");
+            }
         }
 
-        async Task RunInferenceCycle()
+        private async Task RunInferenceCycle()
         {
             try
             {
@@ -167,12 +202,10 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
 
             foreach (var t in ocrText)
             {
-                var playerResult = _cardListController.HasPlayer(prediction.Label, t);
-
-                if (!playerResult.foundPlayer)
-                    continue;
-
-                return playerResult.card;
+                if (_cardListController.HasPlayer(prediction.Label, t, out var playerResult))
+                {
+                    return playerResult;
+                }
             }
 
             return new Card();

@@ -1,10 +1,19 @@
 ﻿using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace JunkWaxDetection.LiveDemo.CardList
 {
+    /// <summary>
+    ///     This class utilizes the JSON Data Sets from Junk Wax Data (https://github.com/JunkWaxData) to
+    ///     search through specified card sets for the player names extracted from the baseball card being
+    ///     evaluated.
+    ///
+    ///     Because the text is extracted using OCR, we need to clean up the text to remove any artifacts or
+    ///     common strings 
+    /// </summary>
+    /// <param name="appSettings"></param>
+    /// <param name="httpClient"></param>
     public class CardListController(IOptions<AppSettings> appSettings, HttpClient httpClient) : ICardListController
     {
         private readonly Dictionary<string, CardList> _cardLists = new();
@@ -40,15 +49,27 @@ namespace JunkWaxDetection.LiveDemo.CardList
             return true;
         }
 
-        public (bool foundPlayer, Card card) HasPlayer(string setLabel, string playerString)
+        /// <summary>
+        ///     Searches through the specified set for the player name extracted from the baseball card
+        /// </summary>
+        /// <param name="setLabel"></param>
+        /// <param name="playerString"></param>
+        /// <param name="card"></param>
+        /// <returns></returns>
+        public bool HasPlayer(string setLabel, string playerString, out Card card)
         {
+            card = new(); //Assign a default card to return if we don't find the player
             var cleanedPlayerString = CleanupString(playerString);
+
+            //Player names will have at least one space -- if there isn't one, bail.
+            if (!cleanedPlayerString.Trim().Contains(' '))
+                return false;
 
             //If we don't have the set, load it
             if (!_cardLists.ContainsKey(setLabel))
             {
                 if (!LoadSet(setLabel))
-                    return (false, new Card());
+                    return false;
             }
 
             var setToSearch = _cardLists[setLabel];
@@ -57,21 +78,27 @@ namespace JunkWaxDetection.LiveDemo.CardList
             foreach (var set in setToSearch.Sets)
             {
                 //Find Exact Matches
-                foreach (var card in set.Cards)
+                foreach (var c in set.Cards)
                 {
-                    if (card.Name.Equals(cleanedPlayerString, StringComparison.InvariantCultureIgnoreCase))
-                        return (true, card);
+                    if (!c.Name.Equals(cleanedPlayerString, StringComparison.InvariantCultureIgnoreCase)) 
+                        continue;
+
+                    card = c;
+                    return true;
                 }
 
-                //Find Partial Matches
-                foreach (var card in set.Cards)
+                //Find Partial Matches (not great, but at this point we're just trying to find the closest match)
+                foreach (var c in set.Cards)
                 {
-                    if (card.Name.StartsWith(cleanedPlayerString, StringComparison.InvariantCultureIgnoreCase))
-                        return (true, card);
+                    if (!c.Name.StartsWith(cleanedPlayerString, StringComparison.InvariantCultureIgnoreCase))
+                        continue;
+
+                    card = c;
+                    return true;
                 }
             }
 
-            return (false, new Card());
+            return false;
 
         }
 
@@ -83,13 +110,17 @@ namespace JunkWaxDetection.LiveDemo.CardList
         /// <returns></returns>
         public string CleanupString(string playerName)
         {
-            if (string.IsNullOrWhiteSpace(playerName))
-                return playerName;
+            //Setup a working name to trim and filter
+            var workingName = playerName.Trim();
+
+            //Bail here if it was just whitespace
+            if (string.IsNullOrWhiteSpace(workingName))
+                return workingName;
 
             //Filter out any characters after a found period (for players like Jr., Sr., etc.)
-            var periodIndex = playerName.IndexOf('.');
+            var periodIndex = workingName.IndexOf('.');
             if (periodIndex > 0)
-                playerName = playerName.Substring(0, periodIndex);
+                workingName = workingName.Substring(0, periodIndex);
 
             // This pattern matches one or more occurrences of:
             //   - A whitespace, followed by
@@ -99,7 +130,7 @@ namespace JunkWaxDetection.LiveDemo.CardList
             var pattern = @"(\s+\b(?:2B|28|1B|18|3B|38|SS|LF|CF|RF|C|P|Pitcher|Catcher|First\s+Base|Second\s+Base|Third\s+Base|Shortstop|Left\s+Field|Center\s+Field|Right\s+Field)\b)+\s*$";
 
             // Remove any trailing position tokens (ignoring case) from the player name.
-            return Regex.Replace(playerName, pattern, string.Empty, RegexOptions.IgnoreCase);
+            return Regex.Replace(workingName, pattern, string.Empty, RegexOptions.IgnoreCase);
         }
 
     }
