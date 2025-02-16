@@ -63,6 +63,17 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
         /// </summary>
         private Timer _inferenceTimer;
 
+        /// <summary>
+        ///     Text to be rendered to the left of the WebCam Preview
+        /// </summary>
+        private string _leftText = string.Empty;
+
+        /// <summary>
+        ///     Text to be rendered to the right of the WebCam Preview
+        /// </summary>
+        private readonly string _rightText =
+            "Webcam preview cropped at 3:4 ratio to\n simulate portrait mode images captured by a\ncell phone, which the underlying Object\nDetection Model was trained on.";
+
         protected override async Task OnInitializedAsync()
         {
             // Initialize the ML Controller
@@ -84,7 +95,7 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
                 await _jsRuntime.InvokeVoidAsync("interop.startWebcam", VideoRef);
 
                 // Draw the overlay cropping the webcam to 3:4 aspect ratio
-                await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", CanvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, null, null);
+                await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", CanvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, null, null, _leftText, _rightText);
             }
         }
 
@@ -175,11 +186,11 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
                 var card = GetCardInfo(original, bestPrediction);
 
                 // Call JS to draw the bounding boxes onto the overlay canvas and update the side text
-                await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", CanvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, boxes, _appSettings.Value.BBoxColor);
-                await DrawSideText(GetSideText(bestPrediction, card), TextArea.Left);
+                SetLeftText(bestPrediction, card);
+                await _jsRuntime.InvokeVoidAsync("interop.updateOverlay", CanvasRef, _appSettings.Value.CropX, _appSettings.Value.CropWidth, _appSettings.Value.PreviewWidth, _appSettings.Value.PreviewHeight, boxes, _appSettings.Value.BBoxColor, _leftText, _rightText);
 
                 // Request a UI update.
-                await InvokeAsync(StateHasChanged);
+                //await InvokeAsync(StateHasChanged);
             }
             catch (Exception ex)
             {
@@ -217,20 +228,20 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
         }
 
         /// <summary>
-        ///     Generates the test to be displayed on the side of the Webcam Preview showing the
+        ///     Generates the text to be displayed on the side of the Webcam Preview showing the
         ///     set and card that are detected
         /// </summary>
         /// <param name="prediction"></param>
         /// <param name="card"></param>
         /// <returns></returns>
-        private string GetSideText(CardPrediction prediction, Card card)
+        private void SetLeftText(CardPrediction prediction, Card card)
         {
             var output = new StringBuilder();
 
             output.AppendLine($"{prediction.Label.Replace("|", " ")}");
             output.AppendLine($"#{card.Number} - {card.Name}");
 
-            return output.ToString();
+            _leftText = output.ToString();
         }
 
         /// <summary>

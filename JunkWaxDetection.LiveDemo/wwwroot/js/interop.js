@@ -21,7 +21,7 @@
 
     // This function clears the overlay canvas, draws the cropping overlay (black bars),
     // and then draws the bounding boxes.
-    updateOverlay: function (canvasElement, cropX, cropWidth, previewWidth, previewHeight, boxes, color) {
+    updateOverlay: function (canvasElement, cropX, cropWidth, previewWidth, previewHeight, boxes, color, leftText, rightText) {
         const ctx = canvasElement.getContext("2d");
         // Clear the entire canvas.
         ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
@@ -47,6 +47,15 @@
             ctx.stroke();
             ctx.fillText(`${box.label} (${box.confidence.toFixed(4)})`, box.x, box.y - 5);
         });
+
+        // Draw text in the blacked-out side areas.
+        if (leftText) {
+            this.drawSideText(canvasElement, "left", leftText, cropX, cropWidth, previewWidth, previewHeight);
+        }
+
+        if (rightText) {
+            this.drawSideText(canvasElement, "right", rightText, cropX, cropWidth, previewWidth, previewHeight);
+        }
     },
 
     /**
