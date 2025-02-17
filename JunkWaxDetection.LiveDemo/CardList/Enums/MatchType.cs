@@ -15,6 +15,11 @@
         /// <summary>
         ///     Partial Match of Player Name to Card in Set, Card Name Starts with search string
         /// </summary>
-        StartsWith
+        StartsWith,
+
+        /// <summary>
+        ///     Partial Match of Player Name to Card in Set, Card Name Contains search string
+        /// </summary>
+        Partial
     }
 }

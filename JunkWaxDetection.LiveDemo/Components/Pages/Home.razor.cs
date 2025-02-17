@@ -203,7 +203,7 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
                 //Get Best Prediction and paint card info on Webcam Preview
                 var bestPrediction = validPredictions.OrderByDescending(p => p.Confidence).First();
 
-                if(_currentCardSearchResult.Match is MatchType.None or MatchType.StartsWith)
+                if(_currentCardSearchResult.Match is not MatchType.Exact)
                     GetCardInfo(original, bestPrediction);
 
                 // Call JS to draw the bounding boxes onto the overlay canvas and update the side text
@@ -239,13 +239,24 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
 
             var results = new List<CardSearchResult>();
 
-            foreach (var t in ocrText)
+            //We build a list of search candidates now, compiling the original OCR text
+            //and also combining lines of text to search for multi-line card names (e.g. "Jose" and "Canseco" on two different lines)
+            var searchCandidates = new List<string>(ocrText); //Populate it with the raw OCR text first
+            for (var i = 0; i < ocrText.Count - 1; i++)
+            {
+                searchCandidates.Add($"{ocrText[i]} {ocrText[i + 1]}");
+            }
+
+            foreach (var t in searchCandidates)
             {
                 if (_cardListController.CardSearch(prediction.Label, t, out var searchResult))
                 {
                     results.Add(searchResult);
                 }
             }
+
+            if (results.Count == 0)
+                return;
 
             //Always return any exact matches first
             if (results.Any(x => x.Match == MatchType.Exact))
@@ -254,11 +265,10 @@ namespace JunkWaxDetection.LiveDemo.Components.Pages
                 return;
             }
 
-
             //We'll settle for partial matches if no exact matches are found
-            if (results.Any(x => x.Match == MatchType.StartsWith))
+            if (results.Any(x => x.Match == MatchType.Partial))
             {
-                _currentCardSearchResult = results.First(x => x.Match == MatchType.StartsWith);
+                _currentCardSearchResult = results.Where(x => x.Match == MatchType.Partial).OrderByDescending(x=> x.Score).First();
                 return;
             }
 

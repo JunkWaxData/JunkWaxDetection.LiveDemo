@@ -84,21 +84,38 @@ namespace JunkWaxDetection.LiveDemo.CardList
                     if (!c.Name.Equals(cleanedPlayerString, StringComparison.InvariantCultureIgnoreCase)) 
                         continue;
 
+                    cardSearchResult.ExtractedText = cleanedPlayerString;
                     cardSearchResult.Match = MatchType.Exact;
                     cardSearchResult.Card = c;
                     return true;
                 }
 
-                //Find Partial Matches (not great, but at this point we're just trying to find the closest match)
+                //Partial Matches
+                //For partial matches, we compile a list of all partial matches where the score is > 0 and return the highest one
+                var candidates = new List<CardSearchResult>();
                 foreach (var c in set.Cards)
                 {
-                    if (!c.Name.StartsWith(cleanedPlayerString, StringComparison.InvariantCultureIgnoreCase))
+                    var score = CalculateScore(cleanedPlayerString, c.Name);
+
+                    if (score <= 0.0)
                         continue;
 
-                    cardSearchResult.Match = MatchType.Exact;
-                    cardSearchResult.Card = c;
-                    return true;
+                    candidates.Add(new CardSearchResult
+                    {
+                        ExtractedText = cleanedPlayerString,
+                        Match = MatchType.Partial,
+                        Card = c,
+                        Score = score
+                    });
                 }
+
+                //None Matched, even partially
+                if (!candidates.Any(x => x.Score > 0.0))
+                    return false;
+
+                //Return the highest confidence match
+                cardSearchResult = candidates.OrderByDescending(x => x.Score).First();
+                return true;
             }
 
             return false;
@@ -134,6 +151,30 @@ namespace JunkWaxDetection.LiveDemo.CardList
 
             // Remove any trailing position tokens (ignoring case) from the player name.
             return Regex.Replace(workingName, pattern, string.Empty, RegexOptions.IgnoreCase);
+        }
+
+        private static float CalculateScore(string string1, string string2)
+        {
+            //We calculate confidence by returning the percentage of characters that
+            //match between the extracted text and the card text. If one of the strings is 
+            //longer, we'll use that as the denominator.
+
+            if (string1.Trim().Length == 0)
+                return 0.0f;
+
+            if (string2.Trim().Length == 0)
+                return 0.0f;
+
+            //Standardize the strings to lowercase
+            string1 = string1.Trim().ToLower();
+            string2 = string2.Trim().ToLower();
+
+            var denominatorString = string1.Length > string2.Length ? string1 : string2;
+            var numeratorString = string1.Length > string2.Length ? string2 : string1;
+
+            var matches = numeratorString.Where((t, i) => t == denominatorString[i]).Count();
+
+            return (float)matches / denominatorString.Length;
         }
 
     }

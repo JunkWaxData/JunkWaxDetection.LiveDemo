@@ -13,5 +13,15 @@ namespace JunkWaxDetection.LiveDemo.CardList
         ///     The Card that was found
         /// </summary>
         public Card Card { get; set; } = new();
+
+        /// <summary>
+        ///    The extracted text from the detected card
+        /// </summary>
+        public string ExtractedText { get; set; } = string.Empty;
+
+        /// <summary>
+        ///     The percentage of the extracted text that matches the card text
+        /// </summary>
+        public float Score { get; set; }
     }
 }
